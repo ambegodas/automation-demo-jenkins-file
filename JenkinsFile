@@ -1,0 +1,33 @@
+node('maven-agent-label'){
+    
+    stage('SCM Checkout'){
+        
+        git 'https://github.com/ambegodas/automation-demo-source.git'
+    }
+    
+    stage('Build Docker Image'){
+        sh "docker build -t pathmasri/automation-docker ."
+    }
+    
+    stage('Push Docker Image'){
+        
+        withCredentials([string(credentialsId: 'dkpwd', variable: 'dockerpassword')]) {
+          
+          sh "docker login -u pathmasri -p ${dockerpassword}"
+        }
+
+        sh "docker push pathmasri/automation-docker"
+    }
+    
+    stage('Deploy in dev'){
+        
+        def dockerRun = "docker run -p 80:3000 -d --name automation-app pathmasri/automation-docker"
+        
+        sshagent(['DevSever']) {
+            
+            sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.94.15 ${dockerRun}"
+        }
+
+    }
+    
+}
