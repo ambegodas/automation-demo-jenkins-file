@@ -20,11 +20,15 @@ node('maven-agent-label'){
     }
     
     stage('Deploy in dev'){
-        
+
         def dockerRun = "docker run -p 80:3000 -d --name automation-app pathmasri/automation-docker"
         
         sshagent(['DevSever']) {
-            
+             
+            sh "docker ps -q | xargs --no-run-if-empty docker stop"
+            sh "docker ps -q -a | xargs --no-run-if-empty docker rm --force --volumes"
+            sh "docker volume ls -q | xargs --no-run-if-empty docker volume rm"
+            sh "docker images -a -q | xargs --no-run-if-empty docker rmi -f"            
             sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.94.15 ${dockerRun}"
         }
 
