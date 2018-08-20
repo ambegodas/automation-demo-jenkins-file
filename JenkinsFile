@@ -1,37 +1,52 @@
 node('maven-agent-label'){
-    
+
     stage('SCM Checkout'){
-        
+
         git 'https://github.com/ambegodas/automation-demo-source.git'
     }
-    
+
     stage('Build Docker Image'){
         sh "docker build -t pathmasri/automation-docker ."
     }
-    
+
     stage('Push Docker Image'){
-        
+
         withCredentials([string(credentialsId: 'dkpwd', variable: 'dockerpassword')]) {
-          
+
           sh "docker login -u pathmasri -p ${dockerpassword}"
         }
 
         sh "docker push pathmasri/automation-docker"
     }
-    
-    stage('Deploy in dev'){
 
-        def dockerRun = "docker run -p 80:3000 -d --name automation-app pathmasri/automation-docker"
-        
+stage('Deploy in dev'){
+
+
         sshagent(['DevSever']) {
-             
-            sh "docker ps -q | xargs --no-run-if-empty docker stop"
-            sh "docker ps -q -a | xargs --no-run-if-empty docker rm --force --volumes"
-            sh "docker volume ls -q | xargs --no-run-if-empty docker volume rm"
-            sh "docker images -a -q | xargs --no-run-if-empty docker rmi -f"            
+
+            def dockerCleana = "docker ps -q"
+            def dockerCleanb = "docker ps -q -a"
+            def dockerCleanc = "docker volume ls -q"
+            def dockerCleand = "docker images -a -q"
+            
+            def dockerCleane = "docker stop"
+            def dockerCleanf = "docker rm --force --volumes"
+            def dockerCleang = "docker volume rm"
+            def dockerCleanh = "docker rmi -f"
+
+            def dockerRun = "docker run -p 80:3000 -d --name automation-app pathmasri/automation-docker"
+            
+            sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.94.15 ${dockerCleana} | xargs --no-run-if-empty ssh -o StrictHostKeyChecking=no ubuntu@172.31.94.15 ${dockerCleane}"
+            sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.94.15 ${dockerCleanb} | xargs --no-run-if-empty ssh -o StrictHostKeyChecking=no ubuntu@172.31.94.15 ${dockerCleanf}"
+            sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.94.15 ${dockerCleanc} | xargs --no-run-if-empty ssh -o StrictHostKeyChecking=no ubuntu@172.31.94.15 ${dockerCleang}"
+            sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.94.15 ${dockerCleand} | xargs --no-run-if-empty ssh -o StrictHostKeyChecking=no ubuntu@172.31.94.15 ${dockerCleanh}"
+            
+     
             sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.94.15 ${dockerRun}"
+          
+            
         }
 
     }
-    
+
 }
